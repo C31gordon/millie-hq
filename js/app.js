@@ -1,7 +1,7 @@
 // ===== THEME =====
 const html = document.documentElement;
 const themeBtn = document.getElementById('theme-toggle');
-let themeMode = localStorage.getItem('millie-theme') || 'auto'; // auto|light|dark
+let themeMode = localStorage.getItem('millie-theme') || 'auto';
 
 function applyTheme() {
   let t;
@@ -44,11 +44,12 @@ navLinks.forEach(a => a.addEventListener('click', e => {
 function navigateTo(page) {
   currentPage = page;
   navLinks.forEach(a => a.classList.toggle('active', a.dataset.page === page));
-  const titles = { dashboard:'Dashboard', tasks:'Tasks', activity:'Activity', usage:'Usage', jobs:'Jobs', agents:'Agents', settings:'Settings' };
+  const titles = { dashboard:'Dashboard', tasks:'Tasks', activity:'Activity', usage:'Usage', jobs:'Cron Jobs', agents:'Agents', settings:'Settings' };
   pageTitle.textContent = titles[page] || page;
   if (usageChart) { usageChart.destroy(); usageChart = null; }
   content.innerHTML = pages[page]();
   if (page === 'usage') initUsageChart('month');
+  if (page === 'tasks') initDragAndDrop();
 }
 
 // ===== HELPERS =====
@@ -57,6 +58,68 @@ const fmtCost = n => '$' + n.toFixed(2);
 const typeIcon = t => ({email:'✉️',task:'📋',cron:'⏰',search:'🔍'}[t]||'•');
 const typeClass = t => ({email:'email',task:'task',cron:'cron',search:'search'}[t]||'');
 const shortTime = s => { const d=new Date(s); return d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); };
+
+// ===== NEW TASK MODAL =====
+function openNewTaskModal() {
+  document.getElementById('new-task-modal').classList.add('show');
+}
+function closeNewTaskModal() {
+  document.getElementById('new-task-modal').classList.remove('show');
+  document.getElementById('new-task-form').reset();
+}
+document.getElementById('new-task-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const name = document.getElementById('nt-name').value.trim();
+  if (!name) return;
+  const newTask = {
+    id: Date.now(),
+    name: name,
+    agent: document.getElementById('nt-agent').value,
+    status: document.getElementById('nt-status').value,
+    priority: document.getElementById('nt-priority').value,
+    date: new Date().toISOString().slice(0,16).replace('T',' '),
+    due: document.getElementById('nt-due').value || ''
+  };
+  MOCK.tasks.push(newTask);
+  closeNewTaskModal();
+  navigateTo('tasks');
+});
+
+// ===== DRAG AND DROP =====
+let draggedTaskId = null;
+
+function initDragAndDrop() {
+  document.querySelectorAll('.task-card[draggable]').forEach(card => {
+    card.addEventListener('dragstart', e => {
+      draggedTaskId = parseInt(e.target.dataset.taskId);
+      e.target.style.opacity = '0.4';
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', e => {
+      e.target.style.opacity = '1';
+    });
+  });
+  document.querySelectorAll('.kanban-col').forEach(col => {
+    col.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      col.style.background = 'var(--bg-hover)';
+    });
+    col.addEventListener('dragleave', e => {
+      col.style.background = '';
+    });
+    col.addEventListener('drop', e => {
+      e.preventDefault();
+      col.style.background = '';
+      const newStatus = col.dataset.status;
+      const task = MOCK.tasks.find(t => t.id === draggedTaskId);
+      if (task && newStatus) {
+        task.status = newStatus;
+        navigateTo('tasks');
+      }
+    });
+  });
+}
 
 // ===== PAGES =====
 const pages = {};
@@ -88,7 +151,7 @@ pages.dashboard = () => {
       <div class="card">
         <div class="section-title">Top Tasks</div>
         <ul class="feed">
-          ${topTasks.map(t=>`<li><div class="feed-icon task">${typeIcon('task')}</div><div class="feed-desc"><div>${t.name}</div><div class="time"><span class="priority ${t.priority}"></span> ${t.priority} · Due ${t.due}</div></div></li>`).join('')}
+          ${topTasks.map(t=>`<li><div class="feed-icon task">${typeIcon('task')}</div><div class="feed-desc"><div>${t.name}</div><div class="time"><span class="priority ${t.priority}"></span> ${t.priority}${t.due ? ' · Due '+t.due : ''}</div></div></li>`).join('')}
         </ul>
       </div>
     </div>
@@ -106,13 +169,13 @@ pages.tasks = () => {
   return `
     <div class="kanban-toolbar">
       <select id="agent-filter"><option value="">All Agents</option><option>Millie</option></select>
-      <button class="primary">+ New Task</button>
+      <button class="primary" onclick="openNewTaskModal()">+ New Task</button>
     </div>
     <div class="kanban">
       ${cols.map(col => {
         const tasks = MOCK.tasks.filter(t=>t.status===col);
-        return `<div class="kanban-col"><div class="kanban-col-header">${labels[col]} <span class="count">${tasks.length}</span></div>${tasks.map(t=>`
-          <div class="task-card"><div class="task-name"><span class="priority ${t.priority}"></span> ${t.name}</div><div class="task-meta"><span>${t.agent}</span><span>${shortTime(t.date)}</span></div></div>`).join('')}</div>`;
+        return `<div class="kanban-col" data-status="${col}"><div class="kanban-col-header">${labels[col]} <span class="count">${tasks.length}</span></div>${tasks.map(t=>`
+          <div class="task-card" draggable="true" data-task-id="${t.id}"><div class="task-name"><span class="priority ${t.priority}"></span> ${t.name}</div><div class="task-meta"><span>${t.agent}</span>${t.due ? '<span>Due '+t.due+'</span>' : ''}</div></div>`).join('')}</div>`;
       }).join('')}
     </div>`;
 };
@@ -130,20 +193,32 @@ pages.activity = () => {
 };
 
 pages.usage = () => {
-  const u = MOCK.usage;
-  const totCost = u.daily.reduce((s,d)=>s+d.cost,0);
-  const totTok = u.daily.reduce((s,d)=>s+d.tokens,0);
-  const totConv = u.daily.reduce((s,d)=>s+d.conversations,0);
+  const u = MOCK.usage.month;
   return `
-    <div class="tabs">
+    <div class="tabs" id="usage-tabs">
       <button class="tab" onclick="switchUsage('today')">Today</button>
       <button class="tab" onclick="switchUsage('week')">This Week</button>
       <button class="tab active" onclick="switchUsage('month')">This Month</button>
     </div>
+    <div id="usage-content">${renderUsageContent(u)}</div>
+    <div class="card" style="margin-top:20px">
+      <div class="section-title">🧭 Model Routing</div>
+      <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:12px">Smart routing sends each job to the most cost-effective model for the task complexity.</p>
+      <div class="table-wrap"><table><thead><tr><th>Job/Task Type</th><th>Model Used</th><th>Cost/Run</th><th>Reason</th></tr></thead><tbody>
+        ${MOCK.modelRouting.map(r=>`<tr><td>${r.job}</td><td>${r.model}</td><td>${r.costPerRun}</td><td>${r.reason}</td></tr>`).join('')}
+      </tbody></table></div>
+      <div style="margin-top:12px;padding:12px;background:var(--bg-input);border-radius:8px;font-size:.85rem">
+        <strong>💰 Estimated Monthly Savings:</strong> ~$38/mo by routing routine tasks to GPT-4.1-mini instead of Claude Opus
+      </div>
+    </div>`;
+};
+
+function renderUsageContent(u) {
+  return `
     <div class="summary-row">
-      <div class="card summary-card"><div class="label">Total Cost</div><div class="value cost">${fmtCost(totCost)}</div></div>
-      <div class="card summary-card"><div class="label">Total Tokens</div><div class="value amber">${(totTok/1e6).toFixed(2)}M</div></div>
-      <div class="card summary-card"><div class="label">Conversations</div><div class="value">${totConv}</div></div>
+      <div class="card summary-card"><div class="label">Total Cost</div><div class="value cost">${fmtCost(u.totCost)}</div></div>
+      <div class="card summary-card"><div class="label">Total Tokens</div><div class="value amber">${(u.totTokens/1e6).toFixed(2)}M</div></div>
+      <div class="card summary-card"><div class="label">Conversations</div><div class="value">${u.totConv}</div></div>
     </div>
     <div class="card" style="margin-bottom:20px"><div class="section-title">Tokens & Cost Over Time</div><div class="chart-container"><canvas id="usage-chart"></canvas></div></div>
     <div class="grid-2">
@@ -154,13 +229,13 @@ pages.usage = () => {
         </tbody></table></div>
       </div>
       <div class="card">
-        <div class="section-title">By Job</div>
+        <div class="section-title">By Cron Job</div>
         <div class="table-wrap"><table><thead><tr><th>Job</th><th>Runs</th><th>Cost</th><th>Tokens</th></tr></thead><tbody>
           ${u.byJob.map(j=>`<tr><td>${j.name}</td><td>${j.runs}</td><td>${fmtCost(j.cost)}</td><td>${fmt(j.tokens)}</td></tr>`).join('')}
         </tbody></table></div>
       </div>
     </div>`;
-};
+}
 
 pages.jobs = () => {
   return `<div>${MOCK.jobs.map(j=>`
@@ -185,7 +260,16 @@ pages.jobs = () => {
 
 pages.agents = () => {
   const a = MOCK.agent;
+  const statusIcon = s => s === 'connected' ? '✅' : s === 'limited' ? '⚠️' : s === 'pending' ? '❌' : '❌';
+  const statusLabel = s => s === 'connected' ? 'Connected' : s === 'limited' ? 'Limited' : s === 'pending' ? 'Pending' : 'Deferred';
   return `
+    <div style="margin-bottom:20px">
+      <select style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--bg-input);color:var(--text);font-size:.9rem;font-weight:600">
+        <option>🔷 Millie</option>
+        <option disabled>+ Add Agent (coming soon)</option>
+      </select>
+      <span style="color:var(--text-secondary);font-size:.8rem;margin-left:8px">Multi-agent ready</span>
+    </div>
     <div class="agent-detail">
       <div class="card" style="margin-bottom:20px">
         <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
@@ -201,16 +285,20 @@ pages.agents = () => {
         </div>
       </div>
       <div class="card" style="margin-bottom:20px">
-        <div class="expandable-header" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.ei').textContent=this.nextElementSibling.classList.contains('open')?'▲':'▼'">Skills <span class="ei">▼</span></div>
+        <div class="expandable-header" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.ei').textContent=this.nextElementSibling.classList.contains('open')?'▲':'▼'">Skills (${a.skills.length}) <span class="ei">▼</span></div>
         <div class="expandable-content">${a.skills.map(s=>`<span class="skill-tag">${s}</span>`).join('')}</div>
       </div>
       <div class="card" style="margin-bottom:20px">
-        <div class="expandable-header" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.ei').textContent=this.nextElementSibling.classList.contains('open')?'▲':'▼'">Active Jobs <span class="ei">▼</span></div>
-        <div class="expandable-content"><ul class="feed">${a.activeJobs.map(j=>`<li><div class="feed-icon cron">⏰</div><div class="feed-desc">${j}</div></li>`).join('')}</ul></div>
+        <div class="expandable-header" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.ei').textContent=this.nextElementSibling.classList.contains('open')?'▲':'▼'">Connected Apps (${a.connectedApps.length}) <span class="ei">▼</span></div>
+        <div class="expandable-content">
+          <div class="table-wrap"><table><thead><tr><th>App</th><th>Details</th><th>Status</th></tr></thead><tbody>
+            ${a.connectedApps.map(app=>`<tr><td><strong>${app.name}</strong></td><td style="color:var(--text-secondary)">${app.detail}</td><td>${statusIcon(app.status)} ${statusLabel(app.status)}</td></tr>`).join('')}
+          </tbody></table></div>
+        </div>
       </div>
-      <div class="card" style="opacity:.5;text-align:center;padding:40px">
-        <div style="font-size:1.5rem;margin-bottom:8px">+</div>
-        <div style="color:var(--text-secondary)">Add Agent (coming soon)</div>
+      <div class="card" style="margin-bottom:20px">
+        <div class="expandable-header" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.ei').textContent=this.nextElementSibling.classList.contains('open')?'▲':'▼'">Active Cron Jobs <span class="ei">▼</span></div>
+        <div class="expandable-content"><ul class="feed">${a.activeJobs.map(j=>`<li><div class="feed-icon cron">⏰</div><div class="feed-desc">${j}</div></li>`).join('')}</ul></div>
       </div>
     </div>`;
 };
@@ -247,9 +335,7 @@ pages.settings = () => {
 function initUsageChart(period) {
   const canvas = document.getElementById('usage-chart');
   if (!canvas) return;
-  let data = MOCK.usage.daily;
-  if (period === 'today') data = data.slice(-1);
-  else if (period === 'week') data = data.slice(-7);
+  const data = MOCK.usage[period].daily;
   const isDark = html.getAttribute('data-theme') === 'dark';
   const gridColor = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.08)';
   const textColor = isDark ? '#A1A1AA' : '#71717A';
@@ -275,9 +361,11 @@ function initUsageChart(period) {
 }
 
 function switchUsage(period) {
-  document.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('#usage-tabs .tab').forEach(t=>t.classList.remove('active'));
   event.target.classList.add('active');
   if (usageChart) { usageChart.destroy(); usageChart = null; }
+  const u = MOCK.usage[period];
+  document.getElementById('usage-content').innerHTML = renderUsageContent(u);
   initUsageChart(period);
 }
 

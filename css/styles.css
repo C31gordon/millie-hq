@@ -67,7 +67,7 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); c
   border-right: 1px solid var(--border-sidebar);
 }
 .sidebar-logo { padding: 20px 16px 12px; display: flex; align-items: center; gap: 10px; font-size: 1.25rem; font-weight: 700; color: #fff; }
-.sidebar-logo span.emoji { font-size: 1.5rem; }
+.sidebar-logo .logo-diamond { font-size: 36px; line-height: 1; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex-shrink: 0; }
 .sidebar nav { flex: 1; padding: 8px; }
 .sidebar nav a {
   display: flex; align-items: center; gap: 10px;
@@ -241,6 +241,19 @@ tr:hover td { background: var(--bg-hover); }
 
 /* ===== SECTION HEADERS ===== */
 .section-title { font-size: 1rem; font-weight: 600; margin-bottom: 16px; }
+
+/* ===== MODAL ===== */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200; align-items: center; justify-content: center; }
+.modal-overlay.show { display: flex; }
+.modal { width: 90%; max-width: 440px; }
+.modal .form-group { margin-bottom: 12px; }
+.modal .form-group label { display: block; font-size: .8rem; color: var(--text-secondary); margin-bottom: 4px; font-weight: 500; }
+.modal .form-group input, .modal .form-group select { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text); font-size: .9rem; }
+
+/* ===== DRAG AND DROP ===== */
+.task-card[draggable="true"] { cursor: grab; }
+.task-card[draggable="true"]:active { cursor: grabbing; }
+.kanban-col { transition: background .2s; border-radius: 8px; padding: 8px; }
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {

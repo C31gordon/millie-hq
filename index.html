@@ -12,13 +12,13 @@
 
 <!-- Sidebar -->
 <aside class="sidebar" id="sidebar">
-  <div class="sidebar-logo"><span class="emoji">🔷</span> Millie HQ</div>
+  <div class="sidebar-logo"><span class="logo-diamond">🔷</span> Millie HQ</div>
   <nav>
     <a href="#" data-page="dashboard" class="active"><span class="icon">📊</span> Dashboard</a>
     <a href="#" data-page="tasks"><span class="icon">📋</span> Tasks</a>
     <a href="#" data-page="activity"><span class="icon">⚡</span> Activity</a>
     <a href="#" data-page="usage"><span class="icon">📈</span> Usage</a>
-    <a href="#" data-page="jobs"><span class="icon">⏰</span> Jobs</a>
+    <a href="#" data-page="jobs"><span class="icon">⏰</span> Cron Jobs</a>
     <a href="#" data-page="agents"><span class="icon">🤖</span> Agents</a>
     <a href="#" data-page="settings"><span class="icon">⚙️</span> Settings</a>
   </nav>
@@ -30,6 +30,24 @@
 
 <!-- Overlay for mobile -->
 <div class="sidebar-overlay" id="overlay"></div>
+
+<!-- New Task Modal -->
+<div class="modal-overlay" id="new-task-modal">
+  <div class="modal card">
+    <h3 style="margin-bottom:16px">New Task</h3>
+    <form id="new-task-form">
+      <div class="form-group"><label>Task Name</label><input type="text" id="nt-name" required></div>
+      <div class="form-group"><label>Priority</label><select id="nt-priority"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select></div>
+      <div class="form-group"><label>Due Date</label><input type="date" id="nt-due"></div>
+      <div class="form-group"><label>Assigned Agent</label><select id="nt-agent"><option>Millie</option></select></div>
+      <div class="form-group"><label>Status</label><select id="nt-status"><option value="scheduled">Scheduled</option><option value="queue">Queue</option><option value="in-progress">In Progress</option><option value="done">Done</option></select></div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button type="submit" class="primary" style="padding:8px 20px;border-radius:8px;border:none;background:var(--primary);color:#fff;cursor:pointer;font-size:.9rem">Add Task</button>
+        <button type="button" onclick="closeNewTaskModal()" style="padding:8px 20px;border-radius:8px;border:1px solid var(--border);background:var(--bg-input);color:var(--text);cursor:pointer;font-size:.9rem">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <!-- Main -->
 <div class="main">
