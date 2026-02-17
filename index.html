@@ -12,7 +12,7 @@
 
 <!-- Sidebar -->
 <aside class="sidebar" id="sidebar">
-  <div class="sidebar-logo"><span class="logo-diamond">🔷</span> Millie HQ</div>
+  <div class="sidebar-logo"><img src="img/millie-logo.jpg" alt="Millie" class="logo-img"> Millie HQ</div>
   <nav>
     <a href="#" data-page="dashboard" class="active"><span class="icon">📊</span> Dashboard</a>
     <a href="#" data-page="tasks"><span class="icon">📋</span> Tasks</a>
@@ -37,6 +37,8 @@
     <h3 style="margin-bottom:16px">New Task</h3>
     <form id="new-task-form">
       <div class="form-group"><label>Task Name</label><input type="text" id="nt-name" required></div>
+      <div class="form-group"><label>Description</label><textarea id="nt-desc" rows="3" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-input);color:var(--text);font-size:.9rem;font-family:inherit;resize:vertical" placeholder="Brief description of this task..."></textarea></div>
+      <div class="form-group"><label>Description</label><textarea id="nt-desc" rows="2" placeholder="Brief description of this task..." style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg-input);color:var(--text);font-family:inherit;resize:vertical"></textarea></div>
       <div class="form-group"><label>Priority</label><select id="nt-priority"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select></div>
       <div class="form-group"><label>Due Date</label><input type="date" id="nt-due"></div>
       <div class="form-group"><label>Assigned Agent</label><select id="nt-agent"><option>Millie</option></select></div>
@@ -46,6 +48,23 @@
         <button type="button" onclick="closeNewTaskModal()" style="padding:8px 20px;border-radius:8px;border:1px solid var(--border);background:var(--bg-input);color:var(--text);cursor:pointer;font-size:.9rem">Cancel</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Task Detail Modal -->
+<div class="modal-overlay" id="task-detail-modal">
+  <div class="modal card" style="max-width:520px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+      <h2 id="td-name" style="font-size:1.2rem;font-weight:700;flex:1;margin-right:12px"></h2>
+      <button onclick="closeTaskDetail()" style="background:none;border:none;color:var(--text-secondary);font-size:1.3rem;cursor:pointer;padding:4px">✕</button>
+    </div>
+    <p id="td-desc" style="color:var(--text-secondary);font-size:.9rem;margin-bottom:16px;line-height:1.5"></p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:.85rem">
+      <div><span style="color:var(--text-secondary)">Priority:</span> <span id="td-priority" style="font-weight:600"></span></div>
+      <div><span style="color:var(--text-secondary)">Status:</span> <span id="td-status" style="font-weight:600"></span></div>
+      <div><span style="color:var(--text-secondary)">Assigned:</span> <span id="td-agent" style="font-weight:600"></span></div>
+      <div><span style="color:var(--text-secondary)">Due:</span> <span id="td-due" style="font-weight:600"></span></div>
+    </div>
   </div>
 </div>
 

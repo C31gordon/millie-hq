@@ -271,3 +271,7 @@ tr:hover td { background: var(--bg-hover); }
 @media (max-width: 480px) {
   .summary-row { grid-template-columns: 1fr 1fr; }
 }
+
+/* Logo image */
+.logo-img { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
+.agent-logo-img { width: 64px; height: 64px; border-radius: 16px; object-fit: cover; }
