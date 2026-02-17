@@ -88,16 +88,25 @@ document.getElementById('new-task-form').addEventListener('submit', function(e) 
 });
 
 // ===== TASK DETAIL MODAL =====
+let activeTaskId = null;
 function openTaskDetail(taskId) {
   const task = MOCK.tasks.find(t => t.id === taskId);
   if (!task) return;
-  document.getElementById('td-name').textContent = task.name;
-  document.getElementById('td-desc').textContent = task.description || 'No description available.';
-  document.getElementById('td-priority').innerHTML = `<span class="priority ${task.priority}"></span> ${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}`;
-  document.getElementById('td-status').textContent = statusLabels[task.status] || task.status;
+  activeTaskId = taskId;
+  document.getElementById('td-name').value = task.name;
+  document.getElementById('td-desc').value = task.description || '';
+  document.getElementById('td-priority').value = task.priority;
+  document.getElementById('td-status').value = task.status;
   document.getElementById('td-agent').textContent = task.agent;
-  document.getElementById('td-due').textContent = task.due || 'None';
+  document.getElementById('td-due').value = task.due || '';
   document.getElementById('task-detail-modal').classList.add('show');
+}
+function updateTaskField(field, value) {
+  if (!activeTaskId) return;
+  const task = MOCK.tasks.find(t => t.id === activeTaskId);
+  if (!task) return;
+  task[field] = value;
+  if (field === 'status') { navigateTo('tasks'); }
 }
 function closeTaskDetail() {
   document.getElementById('task-detail-modal').classList.remove('show');
@@ -414,8 +423,8 @@ pages.settings = () => {
         </div>
       </div>
       <div class="card setting-group">
-        <h3>🔒 API Keys & Secrets</h3>
-        <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:16px;line-height:1.5">API keys and secrets are stored securely in environment variables on the host machine (<code>~/.openclaw/workspace/.env.m365</code>, <code>~/.bashrc</code>, etc.). They are never stored in the dashboard for security.</p>
+        <h3>🔗 Connected Apps</h3>
+        <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:16px;line-height:1.5">API keys and secrets are not stored on this dashboard for security reasons.</p>
         <div class="table-wrap"><table><thead><tr><th>Integration</th><th>Status</th></tr></thead><tbody>
           ${integrations.map(i=>`<tr><td>${i.name}</td><td><span style="color:${i.status==='Connected'?'var(--green)':'var(--amber)'}">${i.status==='Connected'?'✅':'⏳'} ${i.status}</span></td></tr>`).join('')}
         </tbody></table></div>
