@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Millie HQ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo"><span class="emoji">🔷</span> Millie HQ</div>
+  <nav>
+    <a href="#" data-page="dashboard" class="active"><span class="icon">📊</span> Dashboard</a>
+    <a href="#" data-page="tasks"><span class="icon">📋</span> Tasks</a>
+    <a href="#" data-page="activity"><span class="icon">⚡</span> Activity</a>
+    <a href="#" data-page="usage"><span class="icon">📈</span> Usage</a>
+    <a href="#" data-page="jobs"><span class="icon">⏰</span> Jobs</a>
+    <a href="#" data-page="agents"><span class="icon">🤖</span> Agents</a>
+    <a href="#" data-page="settings"><span class="icon">⚙️</span> Settings</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="avatar">CG</div>
+    <div><div style="font-weight:600;color:#fff;font-size:.85rem">Courtney Gordon</div><div style="font-size:.7rem">RISE RE</div></div>
+  </div>
+</aside>
+
+<!-- Overlay for mobile -->
+<div class="sidebar-overlay" id="overlay"></div>
+
+<!-- Main -->
+<div class="main">
+  <header class="topbar">
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="hamburger" id="hamburger">☰</button>
+      <h1 id="page-title">Dashboard</h1>
+    </div>
+    <div class="topbar-right">
+      <button class="theme-btn" id="theme-toggle" title="Toggle theme">🌙</button>
+    </div>
+  </header>
+
+  <div class="content" id="content">
+    <!-- Pages rendered by JS -->
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
