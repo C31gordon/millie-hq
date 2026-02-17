@@ -215,7 +215,7 @@ pages.dashboard = () => {
       <div class="card">
         <div class="section-title">Agent Status</div>
         <div class="agent-card">
-          <div class="agent-avatar">${a.emoji}</div>
+          <div class="agent-avatar"><img src="img/millie-logo.jpg" alt="Millie" style="width:100%;height:100%;border-radius:12px;object-fit:cover"></div>
           <div class="agent-info">
             <div class="name"><span class="status-dot online"></span>${a.name}</div>
             <div class="meta">${a.model} · Last active ${a.lastActive}</div>
@@ -339,7 +339,7 @@ pages.agents = () => {
   return `
     <div style="margin-bottom:20px">
       <select style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--bg-input);color:var(--text);font-size:.9rem;font-weight:600">
-        <option>🔷 Millie</option>
+        <option>◆ Millie</option>
         <option disabled>+ Add Agent (coming soon)</option>
       </select>
       <span style="color:var(--text-secondary);font-size:.8rem;margin-left:8px">Multi-agent ready</span>
@@ -347,7 +347,7 @@ pages.agents = () => {
     <div class="agent-detail">
       <div class="card" style="margin-bottom:20px">
         <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
-          <div class="agent-large-avatar">${a.emoji}</div>
+          <div class="agent-large-avatar"><img src="img/millie-logo.jpg" alt="Millie" style="width:100%;height:100%;border-radius:16px;object-fit:cover"></div>
           <div>
             <div style="font-size:1.2rem;font-weight:700"><span class="status-dot online"></span>${a.name}</div>
             <div style="color:var(--text-secondary)">${a.role} · ${a.model}</div>
