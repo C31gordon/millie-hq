@@ -58,6 +58,7 @@ const fmtCost = n => '$' + n.toFixed(2);
 const typeIcon = t => ({email:'✉️',task:'📋',cron:'⏰',search:'🔍'}[t]||'•');
 const typeClass = t => ({email:'email',task:'task',cron:'cron',search:'search'}[t]||'');
 const shortTime = s => { const d=new Date(s); return d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); };
+const statusLabels = { scheduled:'Scheduled', queue:'Queue', 'in-progress':'In Progress', done:'Done' };
 
 // ===== NEW TASK MODAL =====
 function openNewTaskModal() {
@@ -74,6 +75,7 @@ document.getElementById('new-task-form').addEventListener('submit', function(e) 
   const newTask = {
     id: Date.now(),
     name: name,
+    description: document.getElementById('nt-desc').value.trim(),
     agent: document.getElementById('nt-agent').value,
     status: document.getElementById('nt-status').value,
     priority: document.getElementById('nt-priority').value,
@@ -85,7 +87,26 @@ document.getElementById('new-task-form').addEventListener('submit', function(e) 
   navigateTo('tasks');
 });
 
-// ===== DRAG AND DROP =====
+// ===== TASK DETAIL MODAL =====
+function openTaskDetail(taskId) {
+  const task = MOCK.tasks.find(t => t.id === taskId);
+  if (!task) return;
+  document.getElementById('td-name').textContent = task.name;
+  document.getElementById('td-desc').textContent = task.description || 'No description available.';
+  document.getElementById('td-priority').innerHTML = `<span class="priority ${task.priority}"></span> ${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}`;
+  document.getElementById('td-status').textContent = statusLabels[task.status] || task.status;
+  document.getElementById('td-agent').textContent = task.agent;
+  document.getElementById('td-due').textContent = task.due || 'None';
+  document.getElementById('task-detail-modal').classList.add('show');
+}
+function closeTaskDetail() {
+  document.getElementById('task-detail-modal').classList.remove('show');
+}
+document.getElementById('task-detail-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeTaskDetail();
+});
+
+// ===== DRAG AND DROP (between columns + reorder within) =====
 let draggedTaskId = null;
 
 function initDragAndDrop() {
@@ -97,6 +118,38 @@ function initDragAndDrop() {
     });
     card.addEventListener('dragend', e => {
       e.target.style.opacity = '1';
+      document.querySelectorAll('.kanban-col').forEach(c => c.style.background = '');
+      document.querySelectorAll('.task-card.drag-over').forEach(c => c.classList.remove('drag-over'));
+    });
+    // Allow dropping on other cards for reordering
+    card.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      card.classList.add('drag-over');
+    });
+    card.addEventListener('dragleave', e => {
+      card.classList.remove('drag-over');
+    });
+    card.addEventListener('drop', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      card.classList.remove('drag-over');
+      const targetId = parseInt(card.dataset.taskId);
+      const targetTask = MOCK.tasks.find(t => t.id === targetId);
+      const draggedTask = MOCK.tasks.find(t => t.id === draggedTaskId);
+      if (!targetTask || !draggedTask) return;
+      // Move dragged task to target's status
+      draggedTask.status = targetTask.status;
+      // Reorder: remove dragged, insert before target
+      const dragIdx = MOCK.tasks.indexOf(draggedTask);
+      MOCK.tasks.splice(dragIdx, 1);
+      const targetIdx = MOCK.tasks.indexOf(targetTask);
+      // Insert based on mouse position
+      const rect = card.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      const insertIdx = e.clientY < midY ? targetIdx : targetIdx + 1;
+      MOCK.tasks.splice(insertIdx, 0, draggedTask);
+      navigateTo('tasks');
     });
   });
   document.querySelectorAll('.kanban-col').forEach(col => {
@@ -119,6 +172,27 @@ function initDragAndDrop() {
       }
     });
   });
+}
+
+// ===== NOTIFICATION PREFERENCES =====
+function getNotifPrefs() {
+  const defaults = {
+    morningBrief: true,
+    emailCleanup: true,
+    cronFailures: true,
+    weeklyDigests: true,
+    birthdayReminders: true,
+    taskDueReminders: true
+  };
+  try {
+    const stored = JSON.parse(localStorage.getItem('millie-notif-prefs'));
+    return stored ? { ...defaults, ...stored } : defaults;
+  } catch { return defaults; }
+}
+function setNotifPref(key, val) {
+  const prefs = getNotifPrefs();
+  prefs[key] = val;
+  localStorage.setItem('millie-notif-prefs', JSON.stringify(prefs));
 }
 
 // ===== PAGES =====
@@ -151,7 +225,7 @@ pages.dashboard = () => {
       <div class="card">
         <div class="section-title">Top Tasks</div>
         <ul class="feed">
-          ${topTasks.map(t=>`<li><div class="feed-icon task">${typeIcon('task')}</div><div class="feed-desc"><div>${t.name}</div><div class="time"><span class="priority ${t.priority}"></span> ${t.priority}${t.due ? ' · Due '+t.due : ''}</div></div></li>`).join('')}
+          ${topTasks.map(t=>`<li style="cursor:pointer" onclick="openTaskDetail(${t.id})"><div class="feed-icon task">${typeIcon('task')}</div><div class="feed-desc"><div>${t.name}</div><div class="time"><span class="priority ${t.priority}"></span> ${t.priority}${t.due ? ' · Due '+t.due : ''}</div></div></li>`).join('')}
         </ul>
       </div>
     </div>
@@ -175,7 +249,7 @@ pages.tasks = () => {
       ${cols.map(col => {
         const tasks = MOCK.tasks.filter(t=>t.status===col);
         return `<div class="kanban-col" data-status="${col}"><div class="kanban-col-header">${labels[col]} <span class="count">${tasks.length}</span></div>${tasks.map(t=>`
-          <div class="task-card" draggable="true" data-task-id="${t.id}"><div class="task-name"><span class="priority ${t.priority}"></span> ${t.name}</div><div class="task-meta"><span>${t.agent}</span>${t.due ? '<span>Due '+t.due+'</span>' : ''}</div></div>`).join('')}</div>`;
+          <div class="task-card" draggable="true" data-task-id="${t.id}" onclick="openTaskDetail(${t.id})"><div class="task-name"><span class="priority ${t.priority}"></span> ${t.name}</div><div class="task-meta"><span>${t.agent}</span>${t.due ? '<span>Due '+t.due+'</span>' : ''}</div></div>`).join('')}</div>`;
       }).join('')}
     </div>`;
 };
@@ -297,7 +371,7 @@ pages.agents = () => {
         </div>
       </div>
       <div class="card" style="margin-bottom:20px">
-        <div class="expandable-header" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.ei').textContent=this.nextElementSibling.classList.contains('open')?'▲':'▼'">Active Cron Jobs <span class="ei">▼</span></div>
+        <div class="expandable-header" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.ei').textContent=this.nextElementSibling.classList.contains('open')?'▲':'▼'">Active Cron Jobs (${a.activeJobs.length}) <span class="ei">▼</span></div>
         <div class="expandable-content"><ul class="feed">${a.activeJobs.map(j=>`<li><div class="feed-icon cron">⏰</div><div class="feed-desc">${j}</div></li>`).join('')}</ul></div>
       </div>
     </div>`;
@@ -306,6 +380,25 @@ pages.agents = () => {
 pages.settings = () => {
   const s = MOCK.settings;
   const modes = {auto:'Auto',light:'Light',dark:'Dark'};
+  const prefs = getNotifPrefs();
+  const toggle = (key, label, note) => {
+    const checked = prefs[key] ? 'checked' : '';
+    return `<div class="setting-row"><span><span class="label">${label}</span>${note ? '<br><span style="font-size:.75rem;color:var(--text-secondary)">'+note+'</span>' : ''}</span><label class="toggle-switch"><input type="checkbox" ${checked} onchange="setNotifPref('${key}',this.checked)"><span class="toggle-slider"></span></label></div>`;
+  };
+  const integrations = [
+    { name: 'Microsoft 365', status: 'Connected' },
+    { name: 'GitHub', status: 'Connected' },
+    { name: 'Telegram', status: 'Connected' },
+    { name: 'Brave Search', status: 'Connected' },
+    { name: 'Deepgram', status: 'Connected' },
+    { name: 'ElevenLabs', status: 'Connected' },
+    { name: 'n8n', status: 'Connected' },
+    { name: 'Egnyte', status: 'Connected' },
+    { name: 'Google OAuth', status: 'Connected' },
+    { name: 'Slack', status: 'Pending' },
+    { name: 'Tesla API', status: 'Pending' },
+    { name: 'Google Home', status: 'Pending' },
+  ];
   return `
     <div style="max-width:600px">
       <div class="card setting-group">
@@ -321,12 +414,21 @@ pages.settings = () => {
         </div>
       </div>
       <div class="card setting-group">
-        <h3>API Keys</h3>
-        <button class="placeholder-btn">Configure API Keys</button>
+        <h3>🔒 API Keys & Secrets</h3>
+        <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:16px;line-height:1.5">API keys and secrets are stored securely in environment variables on the host machine (<code>~/.openclaw/workspace/.env.m365</code>, <code>~/.bashrc</code>, etc.). They are never stored in the dashboard for security.</p>
+        <div class="table-wrap"><table><thead><tr><th>Integration</th><th>Status</th></tr></thead><tbody>
+          ${integrations.map(i=>`<tr><td>${i.name}</td><td><span style="color:${i.status==='Connected'?'var(--green)':'var(--amber)'}">${i.status==='Connected'?'✅':'⏳'} ${i.status}</span></td></tr>`).join('')}
+        </tbody></table></div>
       </div>
       <div class="card setting-group">
-        <h3>Notifications</h3>
-        <button class="placeholder-btn">Notification Preferences</button>
+        <h3>📬 Notification Preferences</h3>
+        <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:12px">All notifications delivered via Telegram. Preferences saved locally.</p>
+        ${toggle('morningBrief', 'Morning Brief delivery', 'Daily summary at 7 AM weekdays')}
+        ${toggle('emailCleanup', 'Email Cleanup reports', 'Only when 3+ emails processed')}
+        ${toggle('cronFailures', 'Cron job failure alerts', 'Recommended: always on')}
+        ${toggle('weeklyDigests', 'Weekly digests', 'Trend Analysis & Gumroad Review')}
+        ${toggle('birthdayReminders', 'Birthday reminders', 'Elijah (Mar 14), Gabby (Apr 27)')}
+        ${toggle('taskDueReminders', 'Task due date reminders', 'Alert when tasks are due')}
       </div>
     </div>`;
 };
