@@ -289,7 +289,11 @@ pages.tasks = () => {
       ${cols.map(col => {
         const tasks = MOCK.tasks.filter(t=>t.status===col);
         return `<div class="kanban-col" data-status="${col}"><div class="kanban-col-header">${labels[col]} <span class="count">${tasks.length}</span></div>${tasks.map(t=>`
-          <div class="task-card" draggable="true" data-task-id="${t.id}" onclick="openTaskDetail(${t.id})"><div class="task-name"><span class="priority ${t.priority}"></span> ${t.name}</div><div class="task-meta"><span>${t.agent}</span>${t.due ? '<span>Due '+t.due+'</span>' : ''}</div></div>`).join('')}</div>`;
+          <div class="swipe-container" data-task-id="${t.id}">
+            <div class="swipe-action swipe-action-archive">📦<span>Archive</span></div>
+            <div class="swipe-action swipe-action-delete">🗑<span>Delete</span></div>
+            <div class="task-card" draggable="true" data-task-id="${t.id}" onclick="openTaskDetail(${t.id})"><div class="task-name"><span class="priority ${t.priority}"></span> ${t.name}</div><div class="task-meta"><span>${t.agent}</span>${t.due ? '<span>Due '+t.due+'</span>' : ''}</div></div>
+          </div>`).join('')}</div>`;
       }).join('')}
     </div>`;
 };
@@ -517,6 +521,83 @@ function filterActivity() {
     li.style.display = (!v || li.dataset.type === v) ? '' : 'none';
   });
 }
+
+// ===== DELETE & ARCHIVE =====
+function deleteTask() {
+  if (!activeTaskId) return;
+  if (!confirm('Delete this task?')) return;
+  MOCK.tasks = MOCK.tasks.filter(t => t.id !== activeTaskId);
+  closeTaskDetail();
+  navigateTo('tasks');
+}
+
+function archiveTask() {
+  if (!activeTaskId) return;
+  const task = MOCK.tasks.find(t => t.id === activeTaskId);
+  if (task) task.status = 'done';
+  closeTaskDetail();
+  navigateTo('tasks');
+}
+
+function deleteTaskById(id) {
+  MOCK.tasks = MOCK.tasks.filter(t => t.id !== id);
+  navigateTo('tasks');
+}
+
+function archiveTaskById(id) {
+  const task = MOCK.tasks.find(t => t.id === id);
+  if (task) task.status = 'done';
+  navigateTo('tasks');
+}
+
+// ===== SWIPE GESTURES (mobile) =====
+function initSwipeHandlers() {
+  document.querySelectorAll('.swipe-container').forEach(container => {
+    const card = container.querySelector('.task-card');
+    const taskId = parseInt(container.dataset.taskId);
+    let startX = 0, currentX = 0, swiping = false;
+    const threshold = 80;
+
+    card.addEventListener('touchstart', e => {
+      startX = e.touches[0].clientX;
+      currentX = 0;
+      swiping = true;
+      card.classList.add('swiping');
+    }, { passive: true });
+
+    card.addEventListener('touchmove', e => {
+      if (!swiping) return;
+      currentX = e.touches[0].clientX - startX;
+      // Clamp: left swipe (negative) = archive reveal, right swipe (positive) = delete reveal
+      // Swipe RIGHT = delete, Swipe LEFT = archive
+      const clamped = Math.max(-120, Math.min(120, currentX));
+      card.style.transform = `translateX(${clamped}px)`;
+    }, { passive: true });
+
+    card.addEventListener('touchend', () => {
+      swiping = false;
+      card.classList.remove('swiping');
+      if (currentX > threshold) {
+        // Swiped right → delete
+        card.style.transform = `translateX(100%)`;
+        setTimeout(() => deleteTaskById(taskId), 200);
+      } else if (currentX < -threshold) {
+        // Swiped left → archive
+        card.style.transform = `translateX(-100%)`;
+        setTimeout(() => archiveTaskById(taskId), 200);
+      } else {
+        card.style.transform = '';
+      }
+    });
+  });
+}
+
+// Patch initDragAndDrop to also init swipe
+const _origInitDragAndDrop = initDragAndDrop;
+initDragAndDrop = function() {
+  _origInitDragAndDrop();
+  initSwipeHandlers();
+};
 
 // Init
 navigateTo('dashboard');

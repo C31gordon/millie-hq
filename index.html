@@ -64,6 +64,10 @@
       <div><label style="color:var(--text-secondary);font-size:.8rem">Assigned</label><br><span id="td-agent" style="font-weight:600;display:inline-block;margin-top:8px"></span></div>
       <div><label style="color:var(--text-secondary);font-size:.8rem">Due Date</label><br><input type="date" id="td-due" onchange="updateTaskField('due',this.value)" style="margin-top:4px;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-input);color:var(--text);font-family:inherit"></div>
     </div>
+    <div style="display:flex;gap:10px;padding-top:12px;border-top:1px solid var(--border)">
+      <button onclick="archiveTask()" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--amber);background:rgba(252,181,59,.1);color:var(--amber);cursor:pointer;font-size:.85rem;font-weight:600;font-family:inherit">📦 Archive</button>
+      <button onclick="deleteTask()" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--red);background:rgba(174,19,42,.1);color:var(--red);cursor:pointer;font-size:.85rem;font-weight:600;font-family:inherit">🗑 Delete</button>
+    </div>
   </div>
 </div>
 
