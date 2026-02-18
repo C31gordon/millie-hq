@@ -295,7 +295,18 @@ pages.tasks = () => {
             <div class="task-card" draggable="true" data-task-id="${t.id}" onclick="openTaskDetail(${t.id})"><div class="task-name"><span class="priority ${t.priority}"></span> ${t.name}</div><div class="task-meta"><span>${t.agent}</span>${t.due ? '<span>Due '+t.due+'</span>' : ''}</div></div>
           </div>`).join('')}</div>`;
       }).join('')}
-    </div>`;
+    </div>
+    ${(() => {
+      const trash = getTrash();
+      if (!trash.length) return '';
+      return `<div class="card" style="margin-top:24px">
+        <div class="section-title">🗑 Recently Deleted <span style="font-size:.8rem;color:var(--text-secondary);font-weight:400">(auto-purged after 30 days)</span></div>
+        <ul class="feed">${trash.map((t,i) => {
+          const daysAgo = Math.floor((Date.now() - t.deletedAt) / 86400000);
+          return `<li><div class="feed-icon" style="background:rgba(174,19,42,.12);color:var(--red)">🗑</div><div class="feed-desc"><div>${t.name}</div><div class="time">Deleted ${daysAgo === 0 ? 'today' : daysAgo + 'd ago'} · expires in ${30-daysAgo}d</div></div><div style="display:flex;gap:6px"><button onclick="restoreFromTrash(${i})" style="padding:4px 10px;border-radius:6px;border:1px solid var(--green);background:transparent;color:var(--green);cursor:pointer;font-size:.75rem">Restore</button><button onclick="permanentlyDelete(${i})" style="padding:4px 10px;border-radius:6px;border:1px solid var(--red);background:transparent;color:var(--red);cursor:pointer;font-size:.75rem">Delete</button></div></li>`;
+        }).join('')}</ul>
+      </div>`;
+    })()}`;
 };
 
 pages.activity = () => {
@@ -523,12 +534,34 @@ function filterActivity() {
 }
 
 // ===== DELETE & ARCHIVE =====
+// ===== TRASH (30-day soft delete) =====
+function getTrash() {
+  try { return JSON.parse(localStorage.getItem('millie-trash') || '[]'); } catch { return []; }
+}
+function saveTrash(arr) { localStorage.setItem('millie-trash', JSON.stringify(arr)); }
+function purgeOldTrash() {
+  const now = Date.now();
+  const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+  const trash = getTrash().filter(t => (now - t.deletedAt) < thirtyDays);
+  saveTrash(trash);
+}
+purgeOldTrash();
+
+function softDeleteTaskById(id) {
+  const task = MOCK.tasks.find(t => t.id === id);
+  if (!task) return;
+  const trash = getTrash();
+  trash.push({ ...task, deletedAt: Date.now() });
+  saveTrash(trash);
+  MOCK.tasks = MOCK.tasks.filter(t => t.id !== id);
+  navigateTo('tasks');
+}
+
 function deleteTask() {
   if (!activeTaskId) return;
-  if (!confirm('Delete this task?')) return;
-  MOCK.tasks = MOCK.tasks.filter(t => t.id !== activeTaskId);
+  if (!confirm('Delete this task? It will be recoverable for 30 days.')) return;
+  softDeleteTaskById(activeTaskId);
   closeTaskDetail();
-  navigateTo('tasks');
 }
 
 function archiveTask() {
@@ -539,14 +572,28 @@ function archiveTask() {
   navigateTo('tasks');
 }
 
-function deleteTaskById(id) {
-  MOCK.tasks = MOCK.tasks.filter(t => t.id !== id);
-  navigateTo('tasks');
-}
-
 function archiveTaskById(id) {
   const task = MOCK.tasks.find(t => t.id === id);
   if (task) task.status = 'done';
+  navigateTo('tasks');
+}
+
+function restoreFromTrash(idx) {
+  const trash = getTrash();
+  if (!trash[idx]) return;
+  const task = { ...trash[idx] };
+  delete task.deletedAt;
+  task.status = 'scheduled';
+  MOCK.tasks.push(task);
+  trash.splice(idx, 1);
+  saveTrash(trash);
+  navigateTo('tasks');
+}
+
+function permanentlyDelete(idx) {
+  const trash = getTrash();
+  trash.splice(idx, 1);
+  saveTrash(trash);
   navigateTo('tasks');
 }
 
@@ -578,13 +625,13 @@ function initSwipeHandlers() {
       swiping = false;
       card.classList.remove('swiping');
       if (currentX > threshold) {
-        // Swiped right → archive
+        // Swiped right → delete (soft)
         card.style.transform = `translateX(100%)`;
-        setTimeout(() => archiveTaskById(taskId), 200);
+        setTimeout(() => softDeleteTaskById(taskId), 200);
       } else if (currentX < -threshold) {
-        // Swiped left → delete
+        // Swiped left → archive
         card.style.transform = `translateX(-100%)`;
-        setTimeout(() => deleteTaskById(taskId), 200);
+        setTimeout(() => archiveTaskById(taskId), 200);
       } else {
         card.style.transform = '';
       }
