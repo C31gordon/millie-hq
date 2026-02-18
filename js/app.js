@@ -290,8 +290,8 @@ pages.tasks = () => {
         const tasks = MOCK.tasks.filter(t=>t.status===col);
         return `<div class="kanban-col" data-status="${col}"><div class="kanban-col-header">${labels[col]} <span class="count">${tasks.length}</span></div>${tasks.map(t=>`
           <div class="swipe-container" data-task-id="${t.id}">
-            <div class="swipe-action swipe-action-archive">📦<span>Archive</span></div>
             <div class="swipe-action swipe-action-delete">🗑<span>Delete</span></div>
+            <div class="swipe-action swipe-action-archive">📦<span>Archive</span></div>
             <div class="task-card" draggable="true" data-task-id="${t.id}" onclick="openTaskDetail(${t.id})"><div class="task-name"><span class="priority ${t.priority}"></span> ${t.name}</div><div class="task-meta"><span>${t.agent}</span>${t.due ? '<span>Due '+t.due+'</span>' : ''}</div></div>
           </div>`).join('')}</div>`;
       }).join('')}
@@ -578,13 +578,13 @@ function initSwipeHandlers() {
       swiping = false;
       card.classList.remove('swiping');
       if (currentX > threshold) {
-        // Swiped right → delete
+        // Swiped right → archive
         card.style.transform = `translateX(100%)`;
-        setTimeout(() => deleteTaskById(taskId), 200);
-      } else if (currentX < -threshold) {
-        // Swiped left → archive
-        card.style.transform = `translateX(-100%)`;
         setTimeout(() => archiveTaskById(taskId), 200);
+      } else if (currentX < -threshold) {
+        // Swiped left → delete
+        card.style.transform = `translateX(-100%)`;
+        setTimeout(() => deleteTaskById(taskId), 200);
       } else {
         card.style.transform = '';
       }
