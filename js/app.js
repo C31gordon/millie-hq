@@ -239,6 +239,37 @@ pages.dashboard = () => {
       </div>
     </div>
     <div class="card">
+      <div class="section-title">📋 This Week's Plan</div>
+      <div class="week-plan">
+        <div class="plan-day ${new Date().getDay()===3?'plan-today':''}">
+          <div class="plan-day-label">Wed Feb 18</div>
+          <ul class="plan-items">
+            <li>✅ Entrata reports arrive at courtney.assistant@risere.com</li>
+            <li>✅ Build field mapping from raw Entrata data</li>
+            <li>✅ Test DLR for 1-2 properties → Courtney reviews</li>
+            <li>✅ Collect feedback, finalize DLR format overnight</li>
+          </ul>
+        </div>
+        <div class="plan-day ${new Date().getDay()===4?'plan-today':''}">
+          <div class="plan-day-label">Thu Feb 19</div>
+          <ul class="plan-items">
+            <li>⬜ 4 AM: Auto-pull Entrata reports from inbox</li>
+            <li>⬜ Build Weekly Report</li>
+            <li>⬜ Courtney flying — autonomous build continues</li>
+            <li>⬜ Send DLR to distribution list ~9:30 AM</li>
+          </ul>
+        </div>
+        <div class="plan-day ${new Date().getDay()===5?'plan-today':''}">
+          <div class="plan-day-label">Fri Feb 20</div>
+          <ul class="plan-items">
+            <li>⬜ Finish Portfolio Scorecard 100%</li>
+            <li>⬜ Wire real data from DLR pipeline → Scorecard</li>
+            <li>⬜ Ship it done</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="card">
       <div class="section-title">Recent Activity</div>
       <ul class="feed">
         ${recentAct.map(a=>`<li><div class="feed-icon ${typeClass(a.type)}">${typeIcon(a.type)}</div><div class="feed-desc"><div>${a.desc}</div><div class="time">${shortTime(a.time)}</div></div><div class="feed-cost">${fmtCost(a.cost)} · ${fmt(a.tokens)} tok</div></li>`).join('')}
